@@ -7,8 +7,8 @@
 > revised as more data arrives, and both arrive by polling. The pipeline turns that into a clean,
 > ordered, deduplicated event stream.
 
-**Status:** 🚧 Ingestion complete. Stream processing (event-time windows, incident state,
-county population impact) and live Grafana dashboards in progress.
+**Status:** ✅ Live end to end: two government feeds → Kafka → stream processor → PostgreSQL →
+Grafana, with incident tracking, Census population impact, and pipeline-health monitoring.
 
 ## The Problem
 
@@ -33,7 +33,14 @@ USGS earthquake feed ──────────┘   validate · dedupe · A
                                            │                            │
                                     Schema Registry               Redpanda (Kafka API)
                                                                         │
-                                              (next) stream processing ─▶ Postgres ─▶ Grafana
+                       Census API (county population) ──▶ stream processor (consumer group)
+                                                          │  one DB transaction per batch,
+                                                          │  then commit offsets
+                                                          ▼
+                                     PostgreSQL: messages · incidents · quake versions · lag
+                                                          │
+                                                          ▼
+                                     Grafana: live hazards, people affected, pipeline health
 ```
 
 ## Tech Stack
@@ -44,8 +51,10 @@ USGS earthquake feed ──────────┘   validate · dedupe · A
 | Serialization | Avro schemas, registered per topic |
 | Producer | Python, confluent-kafka (librdkafka), idempotent producer |
 | Sources | NWS alerts API (CAP), USGS real-time earthquake GeoJSON feed |
-| Testing | pytest with librdkafka's in-process mock broker (no Docker needed in CI) |
-| Next | Stream processing, PostgreSQL, Grafana |
+| Processing | Python consumer group, manual offset commits, idempotent upserts |
+| State & serving | PostgreSQL 16 (state, views), Grafana 13 (provisioned dashboards) |
+| Enrichment | Census Bureau ACS 5-year county population |
+| Testing | pytest: mock Kafka broker, real PostgreSQL (CI service), crash-and-replay, every dashboard query |
 
 ## Ingestion: How It Works
 
@@ -72,11 +81,45 @@ Every 60 seconds the producer polls both feeds and, for each record:
 - **24-hour USGS window:** a producer outage of up to a day loses no earthquake revisions.
 - **Topics as code:** partitions and retention are defined in `src/topics.py` and created on start.
 
+## Processing: How It Works
+
+The processor consumes both topics and keeps live state in PostgreSQL:
+
+- **Incidents:** each Alert, Update and Cancel is linked to its hazard through its references.
+  The newest message decides the current area, severity and state, whatever order messages
+  arrive in. A cancellation can never be undone by a delayed update ([ADR-005](docs/adr/005-incident-state.md)).
+- **Earthquakes:** every revision is kept; the latest version and the first-published magnitude
+  are tracked, so revisions (M4.6 → M4.8) are visible.
+- **People affected:** alert counties are joined to Census county population. Each county is
+  counted once when several warnings cover it.
+- **Effectively-once results:** each batch is one database transaction; Kafka offsets are committed
+  only after it succeeds. A crash replays the batch, and idempotent writes make the replay a no-op.
+  This is tested by replaying the entire stream and checking that nothing changes.
+- **Bad messages:** a per-message savepoint rolls back only the bad message, which goes to the dead
+  letter queue. The partition keeps flowing.
+
+## Live Dashboard
+
+![Live dashboard](docs/images/dashboard.png)
+
+Grafana at http://localhost:3000, provisioned from code (`grafana/`):
+
+| Section | Panels |
+|---|---|
+| Right now | Active warnings · people under a warning · earthquakes M2.5+ · data freshness |
+| Alerts | New alerts by severity (event time) · people under warnings by state · top hazards by people affected |
+| Earthquakes | Map of the last 24 hours · events revised after first publication |
+| Pipeline health | Consumer lag · latency (source → ingest → stored) · processed vs duplicates vs errors |
+
+Every panel query runs against a populated PostgreSQL in CI, so a broken query fails the build.
+
 ## Key Design Decisions
 
 - [ADR-001](docs/adr/001-redpanda-local-broker.md): Redpanda as a lightweight Kafka-compatible broker
 - [ADR-002](docs/adr/002-delivery-guarantees-and-keys.md): at-least-once delivery, idempotent consumers, incident keys
 - [ADR-003](docs/adr/003-avro-schemas.md): Avro schemas, event vs processing time, safe schema evolution
+- [ADR-004](docs/adr/004-stream-processing-design.md): consumer + idempotent PostgreSQL sink, and why not Flink or Spark here
+- [ADR-005](docs/adr/005-incident-state.md): modelling incidents from chains of alert messages
 
 ## How to Run
 
@@ -88,13 +131,16 @@ cd realtime-public-safety-alerts
 make env          # creates .env; set CONTACT_USER_AGENT to your app name and email
 make setup        # local dev tools
 make test         # unit tests + Kafka tests against an in-process mock broker
-make up           # start Redpanda, Console and the producer
-make logs         # per-cycle stats: fetched, published, already seen, dead-lettered
-make topics       # topics with message counts
-make peek         # newest alerts, decoded from Avro
+make up           # start the whole stack
+make logs         # producer: fetched, published, already seen, dead-lettered per cycle
+make plogs        # processor: new messages, duplicates, errors per batch
+make incidents    # active hazards affecting the most people
+make dashboard    # open Grafana
 make dlq          # rejected records and why
+make test-db      # all tests, including database tests against the running PostgreSQL
 ```
 
+- Grafana: http://localhost:3000 (no login needed to view)
 - Redpanda Console: http://localhost:8085 (topics, messages, schemas, consumer lag)
 
 ## Project Structure
@@ -102,13 +148,18 @@ make dlq          # rejected records and why
 ```
 ├── src/
 │   ├── producer.py   # polling loop, graceful shutdown
+│   ├── processor.py  # consumer: batch → transaction → offset commit, lag
+│   ├── store.py      # idempotent, order-independent writes; incident resolution
+│   ├── census.py     # county population enrichment
 │   ├── pipeline.py   # validate → dedupe → serialize → publish → DLQ
 │   ├── nws.py        # NWS alert parsing, incident keys, SAME → FIPS
 │   ├── usgs.py       # USGS event parsing and versioning
 │   ├── feeds.py      # conditional HTTP polling with retries
 │   ├── topics.py     # topic definitions
 │   └── schemas/      # Avro schemas
-├── tests/            # parser tests + end-to-end Kafka tests (mock broker)
+├── sql/schema.sql    # tables and dashboard views (applied on start)
+├── grafana/          # data source, dashboard provider, dashboard JSON
+├── tests/            # parsers, Kafka (mock broker), PostgreSQL, replay, dashboard queries
 └── docs/adr/         # architecture decision records
 ```
 
@@ -120,8 +171,28 @@ make dlq          # rejected records and why
   in N minutes usually means the feed or the producer is stuck).
 - Persist producer state (ETags, seen versions) to survive restarts without re-sending.
 - Run the producer with two replicas and leader election, or as a scheduled job with a lock.
+- Grafana alert rules on freshness, lag and dead-letter rate, routed to on-call.
+- Polygon-level population (PostGIS + block-level Census data) instead of whole counties.
 
 ## Data Sources
 
 - National Weather Service, [api.weather.gov](https://www.weather.gov/documentation/services-web-api) (public domain). Requests identify the app and a contact email, as NWS requires.
 - U.S. Geological Survey, real-time earthquake feeds (public domain).
+- U.S. Census Bureau, American Community Survey 5-year estimates, table B01003 (public domain).
+
+## Observations from Live Runs
+
+### 1. Duplicate alerts inside a single NWS response
+- **What happened:** The first poll fetched 463 active alerts but published 460. Three were
+  skipped as "already seen" before anything had been published.
+- **Cause:** The NWS active-alerts feed returned the same alert more than once in one response.
+- **Why it mattered:** The in-flight check in `publish_batch` caught it. Without it, those alerts
+  would have been written to Kafka twice.
+
+### 2. Conditional requests saved nothing
+- **What happened:** Across every cycle, neither feed answered `304 Not Modified`.
+- **Likely cause:** Both feeds are regenerated every minute, so their ETag and Last-Modified
+  change even when no alert or earthquake did.
+- **Lesson:** I measured the optimization instead of assuming it worked. Deduplication on
+  `version_key` is what actually prevents re-sending; conditional requests are kept because
+  they are harmless and would help if a feed starts honoring them.
