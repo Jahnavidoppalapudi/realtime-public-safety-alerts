@@ -1,0 +1,26 @@
+{
+  "type": "record",
+  "name": "UsgsEarthquake",
+  "namespace": "gov.publicsafety",
+  "doc": "One version of a USGS seismic event. USGS revises events (magnitude, location, review status); each revision has a new updated_at.",
+  "fields": [
+    {"name": "event_id", "type": "string"},
+    {"name": "updated_at", "type": {"type": "long", "logicalType": "timestamp-millis"}, "doc": "Version of this event: when USGS last changed it"},
+    {"name": "origin_time", "type": {"type": "long", "logicalType": "timestamp-millis"}, "doc": "Event time: when the earthquake happened"},
+    {"name": "magnitude", "type": ["null", "double"], "default": null},
+    {"name": "mag_type", "type": ["null", "string"], "default": null},
+    {"name": "place", "type": ["null", "string"], "default": null},
+    {"name": "status", "type": "string", "doc": "automatic, reviewed or deleted"},
+    {"name": "event_type", "type": "string", "doc": "earthquake, quarry blast, explosion, ..."},
+    {"name": "latitude", "type": "double"},
+    {"name": "longitude", "type": "double"},
+    {"name": "depth_km", "type": ["null", "double"], "default": null},
+    {"name": "alert_level", "type": ["null", "string"], "default": null, "doc": "PAGER alert: green, yellow, orange, red"},
+    {"name": "tsunami", "type": "boolean"},
+    {"name": "significance", "type": ["null", "int"], "default": null},
+    {"name": "network", "type": "string"},
+    {"name": "all_ids", "type": {"type": "array", "items": "string"}, "doc": "Every network id associated with this event"},
+    {"name": "url", "type": "string"},
+    {"name": "ingested_at", "type": {"type": "long", "logicalType": "timestamp-millis"}}
+  ]
+}

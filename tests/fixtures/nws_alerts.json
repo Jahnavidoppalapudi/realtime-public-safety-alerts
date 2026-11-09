@@ -1,0 +1,101 @@
+{
+  "type": "FeatureCollection",
+  "title": "Current watches, warnings, and advisories (synthetic test sample)",
+  "features": [
+    {
+      "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.test.001.1",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "id": "urn:oid:2.49.0.1.840.0.test.001.1",
+        "areaDesc": "Harris, TX; Fort Bend, TX",
+        "geocode": {"SAME": ["048201", "048157"], "UGC": ["TXC201", "TXC157"]},
+        "references": [],
+        "sent": "2026-05-12T14:05:00-05:00",
+        "effective": "2026-05-12T14:05:00-05:00",
+        "onset": "2026-05-12T14:05:00-05:00",
+        "expires": "2026-05-12T15:00:00-05:00",
+        "ends": "2026-05-12T15:00:00-05:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "Tornado Warning",
+        "senderName": "NWS Houston/Galveston TX",
+        "headline": "Tornado Warning issued May 12 at 2:05PM CDT until May 12 at 3:00PM CDT"
+      }
+    },
+    {
+      "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.test.001.2",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "id": "urn:oid:2.49.0.1.840.0.test.001.2",
+        "areaDesc": "Harris, TX",
+        "geocode": {"SAME": ["048201"], "UGC": ["TXC201"]},
+        "references": [
+          {"@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.test.001.1",
+           "identifier": "urn:oid:2.49.0.1.840.0.test.001.1",
+           "sender": "w-nws.webmaster@noaa.gov", "sent": "2026-05-12T14:05:00-05:00"}
+        ],
+        "sent": "2026-05-12T14:31:00-05:00",
+        "effective": "2026-05-12T14:31:00-05:00",
+        "onset": null,
+        "expires": "2026-05-12T15:00:00-05:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Update",
+        "category": "Met",
+        "severity": "Extreme",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "Tornado Warning",
+        "senderName": "NWS Houston/Galveston TX",
+        "headline": "Tornado Warning remains in effect until 3:00PM CDT for Harris County"
+      }
+    },
+    {
+      "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.test.002.1",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "id": "urn:oid:2.49.0.1.840.0.test.002.1",
+        "areaDesc": "Coastal waters from Freeport to Matagorda Ship Channel",
+        "geocode": {"UGC": ["GMZ335"]},
+        "references": [],
+        "sent": "2026-05-12T10:00:00-05:00",
+        "effective": "2026-05-12T10:00:00-05:00",
+        "expires": "2026-05-13T04:00:00-05:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Minor",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Small Craft Advisory",
+        "senderName": "NWS Houston/Galveston TX"
+      }
+    },
+    {
+      "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.test.bad",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "id": "urn:oid:2.49.0.1.840.0.test.bad",
+        "areaDesc": "Somewhere",
+        "geocode": {"SAME": ["48201"]},
+        "sent": "2026-05-12T10:00:00-05:00",
+        "effective": "2026-05-12T10:00:00-05:00",
+        "expires": "2026-05-12T12:00:00-05:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "severity": "Moderate",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Flood Advisory"
+      }
+    }
+  ]
+}

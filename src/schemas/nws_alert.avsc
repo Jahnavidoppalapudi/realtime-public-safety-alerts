@@ -1,0 +1,35 @@
+{
+  "type": "record",
+  "name": "NwsAlert",
+  "namespace": "gov.publicsafety",
+  "doc": "One National Weather Service alert message (CAP). Updates and cancellations are new messages that reference earlier ones.",
+  "fields": [
+    {"name": "alert_id", "type": "string", "doc": "Unique id of this message (urn:oid:...)"},
+    {"name": "incident_key", "type": "string", "doc": "Earliest referenced alert id, so all messages about one hazard share a key and partition"},
+    {"name": "message_type", "type": "string", "doc": "Alert, Update or Cancel. A string, not an enum, so new values never break consumers"},
+    {"name": "status", "type": "string", "doc": "Actual, Exercise, System, Test or Draft"},
+    {"name": "event", "type": "string", "doc": "Hazard type, e.g. Tornado Warning"},
+    {"name": "category", "type": ["null", "string"], "default": null},
+    {"name": "severity", "type": "string"},
+    {"name": "urgency", "type": "string"},
+    {"name": "certainty", "type": "string"},
+    {"name": "headline", "type": ["null", "string"], "default": null},
+    {"name": "area_desc", "type": "string"},
+    {"name": "county_fips", "type": {"type": "array", "items": "string"}, "doc": "5-digit county FIPS codes derived from SAME codes; joins to Census population"},
+    {"name": "ugc_codes", "type": {"type": "array", "items": "string"}},
+    {"name": "references", "type": {"type": "array", "items": {
+      "type": "record", "name": "AlertReference",
+      "fields": [
+        {"name": "alert_id", "type": "string"},
+        {"name": "sent", "type": {"type": "long", "logicalType": "timestamp-millis"}}
+      ]}}},
+    {"name": "sender_name", "type": ["null", "string"], "default": null},
+    {"name": "sent", "type": {"type": "long", "logicalType": "timestamp-millis"}, "doc": "Event time: when NWS issued this message"},
+    {"name": "effective", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "onset", "type": ["null", {"type": "long", "logicalType": "timestamp-millis"}], "default": null},
+    {"name": "expires", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "ends", "type": ["null", {"type": "long", "logicalType": "timestamp-millis"}], "default": null},
+    {"name": "source_url", "type": "string"},
+    {"name": "ingested_at", "type": {"type": "long", "logicalType": "timestamp-millis"}, "doc": "Processing time: when this pipeline read it"}
+  ]
+}

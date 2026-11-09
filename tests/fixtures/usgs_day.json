@@ -1,0 +1,36 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {"generated": 1778600000000, "title": "USGS All Earthquakes, Past Day (synthetic test sample)", "status": 200, "count": 3},
+  "features": [
+    {
+      "type": "Feature",
+      "id": "ak0test001",
+      "properties": {
+        "mag": 4.6, "place": "62 km SW of Test Town, Alaska", "time": 1778598000000,
+        "updated": 1778598600000, "tz": null, "url": "https://earthquake.usgs.gov/earthquakes/eventpage/ak0test001",
+        "felt": 12, "cdi": 3.4, "mmi": null, "alert": "green", "status": "reviewed", "tsunami": 0,
+        "sig": 330, "net": "ak", "code": "0test001", "ids": ",ak0test001,us7000test,",
+        "sources": ",ak,us,", "types": ",origin,phase-data,", "magType": "ml",
+        "type": "earthquake", "title": "M 4.6 - 62 km SW of Test Town, Alaska"
+      },
+      "geometry": {"type": "Point", "coordinates": [-151.2, 60.1, 35.4]}
+    },
+    {
+      "type": "Feature",
+      "id": "nc0test002",
+      "properties": {
+        "mag": null, "place": "3 km N of Test Valley, CA", "time": 1778599000000,
+        "updated": 1778599100000, "alert": null, "status": "automatic", "tsunami": 0, "sig": null,
+        "net": "nc", "ids": ",nc0test002,", "magType": null, "type": "quarry blast",
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/nc0test002"
+      },
+      "geometry": {"type": "Point", "coordinates": [-122.1, 37.9, 0.2]}
+    },
+    {
+      "type": "Feature",
+      "id": "xx0testbad",
+      "properties": {"mag": 2.1, "time": 1778599500000, "updated": "not-a-number", "status": "automatic"},
+      "geometry": {"type": "Point", "coordinates": [-118.0, 34.0, 5.0]}
+    }
+  ]
+}
