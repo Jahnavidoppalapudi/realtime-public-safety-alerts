@@ -8,16 +8,29 @@ on:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: public_safety
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/public_safety
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: |
-          pip install -r requirements-dev.txt
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        run: pip install -r requirements-dev.txt
       - name: Lint
-        run: ruff check .
-      - name: Test
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Test (unit, Kafka mock broker, PostgreSQL, dashboard queries)
         run: pytest -v
