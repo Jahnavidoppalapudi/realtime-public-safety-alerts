@@ -1,0 +1,2 @@
+confluent-kafka[avro,schemaregistry]==2.16.0
+requests
