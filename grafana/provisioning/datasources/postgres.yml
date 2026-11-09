@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: PublicSafetyDB
+    uid: public-safety-pg
+    type: grafana-postgresql-datasource
+    url: postgres:5432
+    user: grafana_reader          # read-only role created by the processor
+    isDefault: true
+    jsonData:
+      database: public_safety
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    secureJsonData:
+      password: $GRAFANA_DB_PASSWORD

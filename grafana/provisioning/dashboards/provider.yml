@@ -1,0 +1,9 @@
+apiVersion: 1
+
+providers:
+  - name: public-safety
+    folder: Public Safety
+    type: file
+    allowUiUpdates: false         # dashboards are code: change the JSON, not the UI
+    options:
+      path: /var/lib/grafana/dashboards

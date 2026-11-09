@@ -8,6 +8,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src ./src
+COPY sql ./sql
 USER app
 
 CMD ["python", "-m", "src.producer"]

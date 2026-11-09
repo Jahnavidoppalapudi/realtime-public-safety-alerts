@@ -1,5 +1,6 @@
 # Lightweight streaming stack for an 8 GB laptop: one Redpanda broker (Kafka API +
-# Schema Registry), its web console, and the feed producer.
+# Schema Registry), its console, the feed producer, the stream processor, PostgreSQL
+# for live state, and Grafana dashboards. About 2.5 GB of memory in total.
 
 services:
   redpanda:
@@ -65,5 +66,60 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  processor:
+    build: .
+    command: ["python", "-m", "src.processor"]
+    environment:
+      KAFKA_BOOTSTRAP: redpanda:9092
+      SCHEMA_REGISTRY_URL: http://redpanda:8081
+      DATABASE_URL: postgresql://app:${POSTGRES_PASSWORD:-app}@postgres:5432/public_safety
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:-grafana}
+      CONTACT_USER_AGENT: ${CONTACT_USER_AGENT:?Set CONTACT_USER_AGENT in .env}
+      CENSUS_VINTAGE: ${CENSUS_VINTAGE:-2023}
+      CENSUS_API_KEY: ${CENSUS_API_KEY:-}
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_DB: public_safety
+    ports:
+      - "15432:5432"    # for psql or a SQL client on your Mac
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "app", "-d", "public_safety"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"         # local only: view dashboards without logging in
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/public-safety.json
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:-grafana}
+    ports:
+      - "3000:3000"     # dashboards at http://localhost:3000
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
 volumes:
   redpanda-data:
+  postgres-data:
+  grafana-data:
