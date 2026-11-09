@@ -113,6 +113,13 @@ Grafana at http://localhost:3000, provisioned from code (`grafana/`):
 
 Every panel query runs against a populated PostgreSQL in CI, so a broken query fails the build.
 
+## Why No Airflow?
+
+This pipeline is streaming: the producer polls every minute and the processor consumes Kafka
+continuously. Neither ever "finishes," so they run as long-lived services that restart on failure.
+An orchestrator is built for scheduled batch work (my SEC lakehouse project uses Airflow for exactly
+that); running a never-ending consumer inside one fights its retries and timeouts.
+
 ## Key Design Decisions
 
 - [ADR-001](docs/adr/001-redpanda-local-broker.md): Redpanda as a lightweight Kafka-compatible broker
